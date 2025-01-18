@@ -1,159 +1,102 @@
-# Development Plan for Lorem's Cooldown Tracker
+# Lorem's Cooldown Tracker - Development Plan
 
-## Development Philosophy
-- Start with a minimal working cooldown tracker
-- Get early feedback from users
-- Iterate with feature releases
-- Focus on stability before features
+## Current State (v0.1.0-alpha)
+- [x] Basic timeline display (0-5 minutes)
+- [x] Spell cooldown tracking
+- [x] Item cooldown tracking (PvP trinkets)
+- [x] Timeline markers with minute indicators
+- [x] Smooth animations for icon movement
+- [x] Finish animation (grow and fade)
+- [x] Basic slash commands (/lct)
+- [x] Frame dragging and locking
+- [x] Time text formatting (minutes, seconds)
+
+## Immediate Tasks (v0.2.0)
+- [ ] Add settings panel
+  - [x] Icon size adjustment
+  - [ ] Show/hide time text
+  - [ ] Timeline scale (max time shown)
+  - [x] Frame opacity
+- [ ] Improve item tracking
+  - [ ] Auto-detect equipped trinkets
+  - [ ] Track engineering items
+  - [ ] Track potions and consumables
+- [ ] Add visual customization
+  - [ ] Background color/texture
+  - [ ] Marker appearance
+  - [ ] Icon border style
+
+## Future Features (v0.3.0+)
+- [ ] Multiple timeline groups
+  - [ ] Separate timelines for different types (spells/items)
+  - [ ] Custom groups
+  - [ ] Group reordering
+- [ ] Enhanced cooldown filtering
+  - [ ] Minimum/maximum cooldown duration
+  - [ ] Blacklist/whitelist specific spells
+  - [ ] Category filtering (damage/utility/etc)
+- [ ] Shared cooldown tracking
+  - [ ] Track group member cooldowns
+  - [ ] Optional announcements
+- [ ] Profile system
+  - [ ] Per-character settings
+  - [ ] Import/export profiles
+  - [ ] Preset configurations
+
+## Quality of Life Improvements
+- [ ] Tooltip enhancements
+  - [ ] Show exact cooldown time
+  - [ ] Show spell/item details
+  - [ ] Keybind information
+- [ ] Sound effects
+  - [ ] Optional sound on cooldown finish
+  - [ ] Customizable sounds
+- [ ] Performance optimizations
+  - [ ] Reduce update frequency for longer cooldowns
+  - [ ] Batch position updates
+
+## Bug Fixes & Polish
+- [ ] Fix marker positions on frame resize
+- [ ] Improve animation smoothness
+- [ ] Add error handling for invalid items/spells
+- [ ] Clean up event handling
+- [ ] Add debug logging system
+
+## Documentation
+- [ ] User guide
+- [ ] API documentation for other addon authors
+- [ ] Configuration examples
+- [ ] FAQ section
+
+## Testing
+- [ ] Unit tests for core functionality
+- [ ] Integration tests with other addons
+- [ ] Performance benchmarks
+- [ ] Cross-class testing
+- [ ] PvP-specific testing
 
 ## Release Strategy
+1. **Alpha (Current)**
+   - Core functionality
+   - Basic UI elements
+   - Essential features
 
-### Release 1.0 (MVP)
-Core goal: Basic working cooldown tracker with essential features only
-- Single timeline bar
-- Basic spell/ability cooldown tracking
-- Simple drag-and-drop positioning
-- Basic slash commands
-- Minimal settings
+2. **Beta**
+   - Settings panel
+   - Enhanced item support
+   - Visual customization
+   - Bug fixes
 
-### Release 2.0 (Enhanced Features)
-Core goal: Improved usability and customization
-- Multiple timeline sections (short/medium/long)
-- Advanced filtering
-- Visual customization
-- Sound notifications
-- Profiles system
+3. **Release**
+   - Multiple timeline groups
+   - Profile system
+   - Full documentation
+   - Performance optimizations
 
-### Release 3.0 (Advanced Features)
-Core goal: Complete feature set and polish
-- Advanced animations
-- Pet ability tracking
-- Item cooldowns
-- Tutorial system
-- Localization
-
-## Task Breakdown
-
-### MVP Tasks (Release 1.0)
-1. Basic Framework
-   - [x] Create addon structure and TOC file
-   - [x] Set up basic event system
-   - [x] Implement slash command (/lct)
-
-2. Core Functionality
-   - [x] Create single timeline bar
-   - [x] Implement basic spell cooldown detection
-   - [x] Add simple icon display
-   - [x] Show basic time remaining text
-
-3. Essential UI
-   - [x] Make frame draggable
-   - [ ] Add lock/unlock functionality
-   - [ ] Implement basic visibility options
-   - [ ] Create simple settings menu
-
-### Enhancement Tasks (Release 2.0)
-1. Timeline Improvements
-   - [ ] Split into duration sections
-   - [ ] Add cooldown categorization
-   - [ ] Implement smooth animations
-   - [ ] Add icon scaling
-
-2. User Experience
-   - [ ] Create comprehensive settings panel
-   - [ ] Add visual customization options
-   - [ ] Implement sound notifications
-   - [ ] Add cooldown filtering
-
-3. Configuration
-   - [ ] Add profiles system
-   - [ ] Create export/import functionality
-   - [ ] Add preset configurations
-   - [ ] Implement keybindings
-
-### Advanced Features (Release 3.0)
-1. Extended Tracking
-   - [ ] Add item cooldown tracking
-   - [ ] Implement pet ability tracking
-   - [ ] Add trinket tracking
-   - [ ] Create shared cooldown detection
-
-2. Polish
-   - [ ] Add help system
-   - [ ] Create tutorial
-   - [ ] Implement tooltips
-   - [ ] Add context menus
-
-3. Optimization
-   - [ ] Performance optimization
-   - [ ] Memory usage improvements
-   - [ ] Frame update throttling
-
-## Implementation Notes
-
-### MVP Focus Points
-1. Reliability over features
-   - Stable cooldown detection
-   - Accurate timing
-   - No memory leaks
-
-2. Essential User Experience
-   - Clear visibility
-   - Easy positioning
-   - Basic customization
-
-3. Performance Baseline
-   - Minimal CPU usage
-   - Low memory footprint
-   - Efficient event handling
-
-### Technical Considerations
-1. API Compatibility
-   - Use only stable Classic API calls
-   - Version-specific checks
-   - Fallback behaviors
-
-2. Framework Design
-   - Modular structure for future expansion
-   - Clear separation of concerns
-   - Event-driven architecture
-
-3. Testing Strategy
-   - Core functionality testing
-   - Different class testing
-   - Performance benchmarking
-
-## Development Workflow
-1. MVP Development (2-3 weeks)
-   - Basic functionality (Week 1)
-   - Core UI elements (Week 2)
-   - Testing and fixes (Week 3)
-
-2. Release 2.0 (3-4 weeks)
-   - Enhanced features (Week 1-2)
-   - User testing (Week 3)
-   - Polish and fixes (Week 4)
-
-3. Release 3.0 (4-5 weeks)
-   - Advanced features (Week 1-2)
-   - Optimization (Week 3)
-   - Documentation and polish (Week 4-5)
-
-## Success Criteria
-### MVP (1.0)
-- Accurately tracks spell cooldowns
-- Usable interface
-- Stable performance
-- Basic customization
-
-### Release 2.0
-- Comprehensive cooldown tracking
-- Full customization options
-- User profiles
-- Positive user feedback
-
-### Release 3.0
-- Complete feature set
-- Optimized performance
-- Professional polish
-- Community adoption 
+## Contributing
+Guidelines for contributors:
+1. Follow WoW Classic API conventions
+2. Maintain backward compatibility
+3. Document all new features
+4. Include test cases
+5. Follow existing code style 
