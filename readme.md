@@ -1,4 +1,6 @@
 ![image](https://github.com/user-attachments/assets/a4c909bf-6be2-48c7-9cb1-c5f72ccdb042)
+https://github.com/user-attachments/assets/d4d7156f-1196-4786-a3d8-1f2b18c5cce4
+
 
 
 # Lorem's Cooldown Tracker
