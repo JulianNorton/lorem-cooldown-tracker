@@ -3,14 +3,6 @@ local addonName, LCT = ...
 -- Initialize settings namespace
 LCT.settings = {}
 
--- Default settings for dimensions and behavior
-local defaults = {
-    barWidth = 300,
-    barHeight = 30,
-    iconSize = 24,
-    locked = false
-}
-
 -- Function to save dimension settings
 local function SaveDimensionSettings()
     if not LoremCTDB then LoremCTDB = {} end
@@ -30,10 +22,10 @@ local function LoadDimensionSettings()
     local settings = LoremCTDB.dimensions
     
     -- Apply settings with fallback to defaults
-    local width = settings.barWidth or defaults.barWidth
-    local height = settings.barHeight or defaults.barHeight
-    local iconSize = settings.iconSize or defaults.iconSize
-    local locked = settings.locked or defaults.locked
+    local width = settings.barWidth or LCT.defaults.barWidth
+    local height = settings.barHeight or LCT.defaults.barHeight
+    local iconSize = settings.iconSize or LCT.defaults.iconSize
+    local locked = settings.locked or LCT.defaults.locked
     
     -- Apply the settings
     LCT.frame:SetWidth(width)
@@ -43,8 +35,10 @@ local function LoadDimensionSettings()
     LCT.frame:EnableMouse(not locked)
     
     -- Update existing cooldown icons size
-    for _, icon in pairs(LCT.activeCooldowns) do
-        icon:SetSize(iconSize, iconSize)
+    if LCT.activeCooldowns then
+        for _, icon in pairs(LCT.activeCooldowns) do
+            icon:SetSize(iconSize, iconSize)
+        end
     end
     
     -- Update UI controls when settings frame exists
@@ -174,8 +168,10 @@ dimensionControls.iconSizeSlider:SetScript("OnValueChanged", function(self, valu
     LCT.iconSize = value
     dimensionControls.iconSizeInput:SetText(math.floor(value))
     -- Update existing cooldown icons
-    for _, icon in pairs(LCT.activeCooldowns) do
-        icon:SetSize(value, value)
+    if LCT.activeCooldowns then
+        for _, icon in pairs(LCT.activeCooldowns) do
+            icon:SetSize(value, value)
+        end
     end
     SaveDimensionSettings()
 end)
@@ -188,8 +184,10 @@ dimensionControls.iconSizeInput:SetScript("OnEnterPressed", function(self)
         LCT.iconSize = value
         self:SetText(value)
         -- Update existing cooldown icons
-        for _, icon in pairs(LCT.activeCooldowns) do
-            icon:SetSize(value, value)
+        if LCT.activeCooldowns then
+            for _, icon in pairs(LCT.activeCooldowns) do
+                icon:SetSize(value, value)
+            end
         end
         SaveDimensionSettings()
     end

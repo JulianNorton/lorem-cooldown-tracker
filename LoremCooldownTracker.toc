@@ -17,6 +17,9 @@ Libs\LibDBIcon-1.0\LibDBIcon-1.0\LibDBIcon-1.0.lua
 ## Core Files
 core.lua
 animations.lua
+timeline.lua
+cooldowns.lua
+spells.lua
 visibility.lua
 settings.lua
 tests.lua 

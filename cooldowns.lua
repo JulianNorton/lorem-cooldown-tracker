@@ -31,7 +31,13 @@ local function GetCooldownIcon(id, isItem)
         
         icon.texture = icon:CreateTexture(nil, "OVERLAY")
         icon.texture:SetAllPoints()
-        icon.texture:SetTexture(isItem and GetItemIcon(id) or GetSpellTexture(id))
+        
+        local texture = isItem and GetItemIcon(id) or GetSpellTexture(id)
+        if not texture then
+            LCT:Debug("No texture found for", isItem and "item" or "spell", id)
+            return nil
+        end
+        icon.texture:SetTexture(texture)
         
         -- Add tooltip
         icon:SetScript("OnEnter", function(self)
@@ -51,14 +57,18 @@ local function GetCooldownIcon(id, isItem)
         icon.timeText:SetPoint("BOTTOM", icon, "BOTTOM", 0, -2)
         icon.timeText:SetShown(LCT.showTimeText)
         
+        icon.isExistingCooldown = false
         icon:SetShown(LCT.showIcons)
         activeCooldowns[id] = icon
+        LCT:Debug("Created new icon for", isItem and "item" or "spell", id)
     end
     return activeCooldowns[id]
 end
 
 -- Function to update a cooldown
 function cooldowns.UpdateCooldown(id, isItem)
+    if not trackedSpells[id] and not trackedItems[id] then return end
+    
     local start, duration, enabled
     if isItem then
         start, duration, enabled = C_Container.GetItemCooldown(id)
@@ -70,9 +80,11 @@ function cooldowns.UpdateCooldown(id, isItem)
     if enabled == 0 then return end
     
     local icon = GetCooldownIcon(id, isItem)
+    if not icon then return end
     
     if start > 0 and duration > 0 then
-        local remaining = start + duration - GetTime()
+        local currentTime = GetTime()
+        local remaining = (start + duration) - currentTime
         
         -- Skip very short cooldowns
         if duration < 5 then
@@ -81,41 +93,57 @@ function cooldowns.UpdateCooldown(id, isItem)
             return
         end
         
-        -- Start finish animation slightly before cooldown ends
-        if remaining <= 0.2 and remaining > 0 then
+        -- Start freeze-fade animation when cooldown ends
+        if remaining <= 0 then
             if icon:IsVisible() then
                 LCT.animations.StartFinishAnimation(icon)
             end
             return
         end
         
-        if remaining > 0 then
-            -- Handle long cooldowns
-            if remaining > LCT.maxTime then
-                icon:ClearAllPoints()
-                icon:SetPoint("LEFT", LCT.frame, "LEFT", LCT.frame:GetWidth() - LCT.iconSize, 0)
-                icon:Show()
-                icon.timeText:SetText(FormatTimeText(remaining))
-                return
-            end
+        -- Calculate position
+        local width = LCT.frame:GetWidth()
+        local iconSize = LCT.iconSize
+        
+        -- Clamp remaining time to maxTime (default 300s = 5min)
+        remaining = math.min(remaining, LCT.maxTime)
+        
+        --[[ POSITIONING ASSUMPTIONS:
+            Timeline reads left-to-right like a ruler:
             
-            -- Calculate position
-            local width = LCT.frame:GetWidth() - LCT.iconSize
-            local xPos = (remaining / LCT.maxTime) * width
+            [0s -------- 150s -------- 300s]
+            Left                       Right
             
-            if not icon:IsVisible() then
-                icon:ClearAllPoints()
-                icon:SetPoint("LEFT", LCT.frame, "LEFT", xPos, 0)
-                icon:Show()
-            else
-                LCT.animations.StartPositionAnimation(icon, xPos)
-            end
+            - Left edge: x = iconSize/2 (icon centered at 0s mark)
+            - Right edge: x = width - iconSize/2 (icon centered at maxTime mark)
+            - Total travel distance = width - iconSize
+            - Icons move from right to left as time decreases
+            - New cooldowns start on right (full duration)
+            - Completed cooldowns end on left (0 duration)
             
-            icon.timeText:SetText(FormatTimeText(remaining))
+            Position calculation:
+            - remaining/maxTime gives us a percentage (1.0 to 0.0)
+            - Multiply by available width (width - iconSize) to get travel distance
+            - Add iconSize/2 to adjust for icon centering
+            - This ensures icon centers move from (width - iconSize/2) to (iconSize/2)
+        --]]
+        
+        -- Calculate the actual position
+        local xPos = (remaining / LCT.maxTime) * (width - iconSize) + (iconSize/2)
+        
+        -- Show and position icon
+        if not icon:IsVisible() then
+            icon:ClearAllPoints()
+            icon:SetPoint("CENTER", LCT.frame, "LEFT", xPos, 0)
+            icon:Show()
         else
-            LCT.animations.CancelAnimation(icon)
-            icon:Hide()
+            -- Always update position directly, no animation needed
+            icon:ClearAllPoints()
+            icon:SetPoint("CENTER", LCT.frame, "LEFT", xPos, 0)
         end
+        
+        -- Update time text
+        icon.timeText:SetText(FormatTimeText(remaining))
     else
         LCT.animations.CancelAnimation(icon)
         icon:Hide()
@@ -132,9 +160,29 @@ function cooldowns.UpdateAll()
     end
 end
 
+-- Function to register a spell
+function cooldowns.RegisterSpell(spellID)
+    if not spellID then return end
+    trackedSpells[spellID] = true
+    local name = GetSpellInfo(spellID)
+    LCT:Debug("Registered spell:", spellID, name)
+end
+
+-- Function to unregister a spell
+function cooldowns.UnregisterSpell(spellID)
+    trackedSpells[spellID] = nil
+    if activeCooldowns[spellID] then
+        activeCooldowns[spellID]:Hide()
+        activeCooldowns[spellID] = nil
+    end
+end
+
 -- Function to register an item
 function cooldowns.RegisterItem(itemID)
+    if not itemID then return end
     trackedItems[itemID] = true
+    local name = GetItemInfo(itemID)
+    LCT:Debug("Registered item:", itemID, name)
 end
 
 -- Function to unregister an item
@@ -148,6 +196,35 @@ end
 
 -- Initialize cooldown tracking
 function cooldowns.Initialize()
+    LCT:Debug("Initializing cooldown tracking")
+    
+    -- Check for existing cooldowns on tracked spells/items
+    local function CheckExistingCooldowns()
+        -- Check spells
+        for spellID in pairs(trackedSpells) do
+            local start, duration = GetSpellCooldown(spellID)
+            if start and start > 0 and duration > 0 then
+                local currentTime = GetTime()
+                local remaining = (start + duration) - currentTime
+                if remaining > 0 then
+                    cooldowns.UpdateCooldown(spellID, false)
+                end
+            end
+        end
+        
+        -- Check items
+        for itemID in pairs(trackedItems) do
+            local start, duration = C_Container.GetItemCooldown(itemID)
+            if start and start > 0 and duration > 0 then
+                local currentTime = GetTime()
+                local remaining = (start + duration) - currentTime
+                if remaining > 0 then
+                    cooldowns.UpdateCooldown(itemID, true)
+                end
+            end
+        end
+    end
+    
     -- Set up OnUpdate script
     local updateElapsed = 0
     LCT.frame:SetScript("OnUpdate", function(self, elapsed)
@@ -157,6 +234,9 @@ function cooldowns.Initialize()
             updateElapsed = 0
         end
     end)
+    
+    -- Initial check after a short delay to ensure everything is loaded
+    C_Timer.After(0.5, CheckExistingCooldowns)
 end
 
 -- Return the module

@@ -4,8 +4,10 @@ local addonName, LCT = ...
 LCT.animations = {}
 
 -- Animation settings
-local ANIMATION_DURATION = 0.15 -- Duration in seconds
-local FINISH_ANIMATION_DURATION = 0.8 -- Duration for finish animation
+local ANIMATION_DURATION = 0.15
+local FINISH_ANIMATION_DURATION = 0.2
+local FINAL_SECONDS_SCALE = 2.0
+local FINAL_SECONDS_THRESHOLD = 10
 
 -- Table to store active animations
 local activeAnimations = {}
@@ -14,7 +16,7 @@ local finishAnimations = {}
 -- Create animation frame
 LCT.animations.updateFrame = CreateFrame("Frame")
 
--- Set up the OnUpdate script once
+-- Set up the OnUpdate script
 LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
     local now = GetTime()
     local hasActiveAnimations = false
@@ -28,7 +30,7 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
             if elapsed >= duration then
                 -- Animation complete
                 icon:ClearAllPoints()
-                icon:SetPoint("LEFT", LCT.frame, "LEFT", anim.targetX, 0)
+                icon:SetPoint("CENTER", LCT.frame, "LEFT", anim.targetX, 0)
                 activeAnimations[icon] = nil
             else
                 -- Linear movement for timeline consistency
@@ -36,8 +38,16 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
                 local currentX = anim.startX + ((anim.targetX - anim.startX) * progress)
                 
                 icon:ClearAllPoints()
-                icon:SetPoint("LEFT", LCT.frame, "LEFT", currentX, 0)
+                icon:SetPoint("CENTER", LCT.frame, "LEFT", currentX, 0)
                 hasActiveAnimations = true
+            end
+            
+            -- Handle scaling
+            if anim.remaining and anim.remaining <= FINAL_SECONDS_THRESHOLD then
+                local scale = 1 + (FINAL_SECONDS_SCALE - 1) * (1 - anim.remaining / FINAL_SECONDS_THRESHOLD)
+                icon:SetScale(scale)
+            else
+                icon:SetScale(1)
             end
         else
             activeAnimations[icon] = nil
@@ -55,101 +65,56 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
             icon:SetAlpha(1)
             finishAnimations[icon] = nil
         else
-            -- Calculate progress for grow and fade
+            -- Fade out
             local progress = elapsed / FINISH_ANIMATION_DURATION
-            
-            -- Simple grow and fade
-            local scale = 1 + (0.5 * progress) -- Grow from 1.0 to 1.5
-            local alpha = 1 - progress         -- Fade out from 1 to 0
+            local alpha = 1 - progress
             
             icon:Show()
-            icon:SetScale(scale)
             icon:SetAlpha(alpha)
             hasActiveAnimations = true
         end
     end
     
-    if hasActiveAnimations then
-        self:SetScript("OnUpdate", self:GetScript("OnUpdate"))
+    if not hasActiveAnimations then
+        self:SetScript("OnUpdate", nil)
     end
 end)
 
--- Function to start a position animation
-function LCT.animations.StartPositionAnimation(icon, targetX)
+-- Function to start position animation
+function LCT.animations.StartPositionAnimation(icon, targetX, remaining)
     if not icon then return end
     
-    -- Cancel any existing finish animation
-    finishAnimations[icon] = nil
-    icon:SetScale(1)
-    icon:SetAlpha(1)
+    local _, _, _, _, currentX = icon:GetPoint()
+    currentX = currentX or 0
     
-    -- Get current position
-    local currentX = targetX
-    if icon:GetPoint() then
-        local _, _, _, x = icon:GetPoint()
-        if x then currentX = x end
-    end
-    
-    -- Create or update animation data
     activeAnimations[icon] = {
+        startTime = GetTime(),
+        duration = ANIMATION_DURATION,
         startX = currentX,
         targetX = targetX,
-        startTime = GetTime(),
-        duration = ANIMATION_DURATION
+        remaining = remaining
     }
     
-    -- Ensure OnUpdate is running
     LCT.animations.updateFrame:SetScript("OnUpdate", LCT.animations.updateFrame:GetScript("OnUpdate"))
 end
 
--- Function to start finish animation
+-- Function to start freeze-fade animation
 function LCT.animations.StartFinishAnimation(icon)
     if not icon then return end
     
-    -- Cancel any existing animations
-    activeAnimations[icon] = nil
-    finishAnimations[icon] = nil
-    
-    -- Create finish animation data
     finishAnimations[icon] = {
         startTime = GetTime()
     }
     
-    -- Set initial state
-    icon:Show()
-    icon:SetScale(1.0) -- Start at normal size
-    icon:SetAlpha(1)
-    
-    -- Ensure OnUpdate is running
     LCT.animations.updateFrame:SetScript("OnUpdate", LCT.animations.updateFrame:GetScript("OnUpdate"))
 end
 
--- Function to cancel animations for an icon
+-- Function to cancel animation
 function LCT.animations.CancelAnimation(icon)
     if not icon then return end
     
-    -- Clean up finish animation
     activeAnimations[icon] = nil
     finishAnimations[icon] = nil
     icon:SetScale(1)
     icon:SetAlpha(1)
-end
-
--- Function to cancel all animations
-function LCT.animations.CancelAllAnimations()
-    for icon, anim in pairs(finishAnimations) do
-        if anim.glowTexture then
-            anim.glowTexture:Hide()
-            anim.glowTexture = nil
-        end
-        icon:SetScale(1)
-        icon:SetAlpha(1)
-    end
-    for icon in pairs(activeAnimations) do
-        icon:SetScale(1)
-        icon:SetAlpha(1)
-    end
-    wipe(activeAnimations)
-    wipe(finishAnimations)
-    LCT.animations.updateFrame:SetScript("OnUpdate", nil)
 end 

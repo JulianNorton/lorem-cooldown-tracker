@@ -1,32 +1,29 @@
 local addonName, LCT = ...
 
--- Visibility defaults
-local defaults = {
-    shown = true,
-    bgOpacity = 0.5,
-    showTimeText = true,
-    showIcons = true
-}
-
 -- Initialize visibility settings
 LCT.visibility = {
-    shown = defaults.shown,
-    bgOpacity = defaults.bgOpacity,
-    showTimeText = defaults.showTimeText,
-    showIcons = defaults.showIcons,
+    shown = LCT.defaults.shown,
+    bgOpacity = LCT.defaults.bgOpacity,
+    showTimeText = LCT.defaults.showTimeText,
+    showIcons = LCT.defaults.showIcons,
     
     -- Function to update icon visibility
     UpdateIconVisibility = function(icon)
         if icon then
             icon:SetShown(LCT.visibility.showIcons)
-            icon.timeText:SetShown(LCT.visibility.showTimeText)
+            if icon.timeText then
+                icon.timeText:SetShown(LCT.visibility.showTimeText)
+            end
         end
     end,
     
     -- Function to update all icons visibility
     UpdateAllIconsVisibility = function()
-        for _, icon in pairs(LCT.activeCooldowns) do
-            LCT.visibility.UpdateIconVisibility(icon)
+        -- Ensure activeCooldowns exists and is a table
+        if type(LCT.activeCooldowns) == "table" then
+            for _, icon in pairs(LCT.activeCooldowns) do
+                LCT.visibility.UpdateIconVisibility(icon)
+            end
         end
     end,
     
@@ -39,26 +36,45 @@ LCT.visibility = {
         LoremCTDB.visibility.bgOpacity = LCT.frame.bg:GetAlpha()
         LoremCTDB.visibility.showTimeText = LCT.visibility.showTimeText
         LoremCTDB.visibility.showIcons = LCT.visibility.showIcons
+        
+        LCT:Debug("Saved visibility settings - shown:", LoremCTDB.visibility.shown)
     end,
     
     -- Function to load visibility settings
     LoadSettings = function()
+        LCT:Debug("Loading visibility settings")
         if not LoremCTDB then LoremCTDB = {} end
         if not LoremCTDB.visibility then LoremCTDB.visibility = {} end
         
         local settings = LoremCTDB.visibility
         
         -- Load settings with fallback to defaults
-        local shown = settings.shown ~= nil and settings.shown or defaults.shown
-        local bgOpacity = settings.bgOpacity or defaults.bgOpacity
-        local showTimeText = settings.showTimeText ~= nil and settings.showTimeText or defaults.showTimeText
-        local showIcons = settings.showIcons ~= nil and settings.showIcons or defaults.showIcons
+        local shown = settings.shown ~= nil and settings.shown or LCT.defaults.shown
+        local bgOpacity = settings.bgOpacity or LCT.defaults.bgOpacity
+        local showTimeText = settings.showTimeText ~= nil and settings.showTimeText or LCT.defaults.showTimeText
+        local showIcons = settings.showIcons ~= nil and settings.showIcons or LCT.defaults.showIcons
+        
+        LCT:Debug("Loaded shown value:", shown)
         
         -- Apply settings
-        if shown then LCT.frame:Show() else LCT.frame:Hide() end
-        LCT.frame.bg:SetAlpha(bgOpacity)
+        LCT.visibility.shown = shown
+        LCT.visibility.bgOpacity = bgOpacity
         LCT.visibility.showTimeText = showTimeText
         LCT.visibility.showIcons = showIcons
+        
+        -- Apply frame visibility
+        if shown then
+            LCT:Debug("Showing frame from LoadSettings")
+            LCT.frame:Show()
+        else
+            LCT:Debug("Hiding frame from LoadSettings")
+            LCT.frame:Hide()
+        end
+        
+        -- Apply background opacity
+        if LCT.frame.bg then
+            LCT.frame.bg:SetAlpha(bgOpacity)
+        end
         
         -- Update all existing icons
         LCT.visibility.UpdateAllIconsVisibility()
@@ -67,8 +83,34 @@ LCT.visibility = {
         if LCT.settings and LCT.settings.UpdateVisibilityControls then
             LCT.settings.UpdateVisibilityControls()
         end
+    end,
+    
+    -- Function to initialize visibility
+    Initialize = function()
+        LCT:Debug("Initializing visibility")
+        -- Show frame by default
+        LCT.frame:Show()
+        LCT:Debug("Frame shown status after Show():", LCT.frame:IsShown())
+        -- Set initial background opacity
+        LCT.frame.bg:SetAlpha(LCT.defaults.bgOpacity)
+        -- Load saved settings if they exist
+        LCT.visibility.LoadSettings()
+        LCT:Debug("Frame shown status after LoadSettings:", LCT.frame:IsShown())
     end
 }
+
+-- Register for PLAYER_ENTERING_WORLD to ensure frame is shown
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_ENTERING_WORLD" then
+        LCT:Debug("PLAYER_ENTERING_WORLD - Ensuring frame visibility")
+        if LCT.visibility.shown then
+            LCT.frame:Show()
+            LCT:Debug("Frame shown status after PLAYER_ENTERING_WORLD:", LCT.frame:IsShown())
+        end
+    end
+end)
 
 -- Create visibility controls
 function LCT.visibility.CreateControls(parent)
