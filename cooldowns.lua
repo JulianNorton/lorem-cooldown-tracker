@@ -39,20 +39,6 @@ local function GetCooldownIcon(id, isItem)
         end
         icon.texture:SetTexture(texture)
         
-        -- Add tooltip
-        icon:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            if isItem then
-                GameTooltip:SetItemByID(id)
-            else
-                GameTooltip:SetSpellByID(id)
-            end
-            GameTooltip:Show()
-        end)
-        icon:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-        
         icon.timeText = icon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         icon.timeText:SetPoint("BOTTOM", icon, "BOTTOM", 0, -2)
         icon.timeText:SetShown(LCT.showTimeText)
@@ -225,14 +211,23 @@ function cooldowns.Initialize()
         end
     end
     
-    -- Set up OnUpdate script
+    -- Set up OnUpdate script with fixed update frequency (10 updates per second)
     local updateElapsed = 0
+    local UPDATE_FREQUENCY = 0.1  -- 100ms = 10 updates per second
+    
     LCT.frame:SetScript("OnUpdate", function(self, elapsed)
         updateElapsed = updateElapsed + elapsed
-        if updateElapsed >= LCT.updateFrequency then
-            cooldowns.UpdateAll()
-            updateElapsed = 0
+        
+        -- Skip update if not enough time has passed
+        if updateElapsed < UPDATE_FREQUENCY then
+            return
         end
+        
+        -- Update all cooldowns
+        cooldowns.UpdateAll()
+        
+        -- Reset elapsed time
+        updateElapsed = 0
     end)
     
     -- Initial check after a short delay to ensure everything is loaded

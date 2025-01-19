@@ -98,8 +98,45 @@ end
 -- Initialize timeline
 function timeline.Initialize()
     LCT:Debug("Initializing timeline module")
-    -- Set up resize handler
-    LCT.frame:SetScript("OnSizeChanged", timeline.UpdateMarkers)
+    
+    -- Throttle resize updates
+    local resizeElapsed = 0
+    local isResizing = false
+    local RESIZE_THROTTLE = 0.1  -- Only update every 100ms during resize
+    
+    -- Create resize update frame
+    local resizeFrame = CreateFrame("Frame")
+    resizeFrame:Hide()
+    
+    -- Set up throttled resize handler
+    resizeFrame:SetScript("OnUpdate", function(self, elapsed)
+        resizeElapsed = resizeElapsed + elapsed
+        if resizeElapsed >= RESIZE_THROTTLE then
+            timeline.UpdateMarkers()
+            resizeElapsed = 0
+            
+            -- If we're not resizing anymore, hide the frame
+            if not isResizing then
+                self:Hide()
+            end
+        end
+    end)
+    
+    -- Set up resize handler with throttling
+    LCT.frame:SetScript("OnSizeChanged", function()
+        if not isResizing then
+            isResizing = true
+            resizeFrame:Show()
+            
+            -- Force an immediate first update
+            timeline.UpdateMarkers()
+        end
+        
+        -- Reset resize state after a delay
+        C_Timer.After(0.2, function()
+            isResizing = false
+        end)
+    end)
     
     -- Create initial markers
     timeline.UpdateMarkers()
