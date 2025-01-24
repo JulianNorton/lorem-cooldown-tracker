@@ -1,5 +1,7 @@
 # Lorem's Cooldown Tracker
-A World of Warcraft Classic addon that provides an intuitive visual timeline for tracking ability and item cooldowns.
+![lct-gif](https://github.com/user-attachments/assets/ce4cacd9-a329-494a-b95f-b3ed5eedbbf5)
+
+A World of Warcraft Classic addon that provides an minimal visual timeline for tracking ability and item cooldowns.
 
 ## Key Features
 
