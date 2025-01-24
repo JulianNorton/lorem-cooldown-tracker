@@ -1,8 +1,12 @@
-## Interface: 11501
+## Interface-Classic: 11501
+## Interface-SoD: 11500
+## Interface-TBC: 20504
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
 ## Title: Lorem Cooldown Tracker
 ## Notes: Visual timeline for tracking ability cooldowns
 ## Author: Julian
-## Version: 0.1.0-alpha
+## Version: 1.0.0
 ## SavedVariables: LoremCTDB
 
 ## Libraries
