@@ -40,57 +40,37 @@ function timeline.UpdateMarkers()
     
     -- Function to calculate marker position
     local function GetMarkerPosition(timeRemaining)
-        return (timeRemaining / LCT.maxTime) * (width - iconSize) + (iconSize/2)
+        if LCT.reverseTimeline then
+            -- Reversed: high time on left, low time on right
+            return ((LCT.maxTime - timeRemaining) / LCT.maxTime) * (width - iconSize) + (iconSize/2)
+        else
+            -- Normal: low time on left, high time on right
+            return (timeRemaining / LCT.maxTime) * (width - iconSize) + (iconSize/2)
+        end
     end
     
-    -- Create 0-second marker (left)
-    local startMarker = frame:CreateTexture(nil, "ARTWORK")
-    startMarker:SetSize(1, frame:GetHeight() * 0.5)
-    startMarker:SetColorTexture(1, 1, 1, 0.3)
-    startMarker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(0), 0)
-    table.insert(frame.markers, startMarker)
+    -- Create markers in the correct order based on direction
+    local markerTimes = {0, 10, 30, 60, LCT.maxTime}
+    local markerHeights = {0.5, 0.3, 0.4, 0.5, 0.5}  -- Relative heights for each marker
+    local markerLabels = {"", "", "", "1m", "5m"}
     
-    -- Create 10-second marker
-    local tenSecMarker = frame:CreateTexture(nil, "ARTWORK")
-    tenSecMarker:SetSize(1, frame:GetHeight() * 0.3)
-    tenSecMarker:SetColorTexture(1, 1, 1, 0.2)
-    tenSecMarker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(10), 0)
-    table.insert(frame.markers, tenSecMarker)
-    
-    -- Create 30-second marker
-    local halfMinMarker = frame:CreateTexture(nil, "ARTWORK")
-    halfMinMarker:SetSize(1, frame:GetHeight() * 0.4)
-    halfMinMarker:SetColorTexture(1, 1, 1, 0.25)
-    halfMinMarker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(30), 0)
-    table.insert(frame.markers, halfMinMarker)
-    
-    -- Create 1-minute marker
-    local minuteMarker = frame:CreateTexture(nil, "ARTWORK")
-    minuteMarker:SetSize(1, frame:GetHeight() * 0.5)
-    minuteMarker:SetColorTexture(1, 1, 1, 0.3)
-    minuteMarker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(60), 0)
-    table.insert(frame.markers, minuteMarker)
-    
-    -- Add 1m text
-    local minuteText = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    minuteText:SetText("1m")
-    minuteText:SetPoint("BOTTOM", minuteMarker, "TOP", 0, 1)
-    minuteText:SetTextColor(1, 1, 1, 0.3)
-    table.insert(frame.texts, minuteText)
-    
-    -- Create 5-minute marker (right)
-    local endMarker = frame:CreateTexture(nil, "ARTWORK")
-    endMarker:SetSize(1, frame:GetHeight() * 0.5)
-    endMarker:SetColorTexture(1, 1, 1, 0.3)
-    endMarker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(LCT.maxTime), 0)
-    table.insert(frame.markers, endMarker)
-    
-    -- Add 5m text
-    local endText = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    endText:SetText("5m")
-    endText:SetPoint("BOTTOM", endMarker, "TOP", 0, 1)
-    endText:SetTextColor(1, 1, 1, 0.3)
-    table.insert(frame.texts, endText)
+    for i, timeValue in ipairs(markerTimes) do
+        -- Create marker
+        local marker = frame:CreateTexture(nil, "ARTWORK")
+        marker:SetSize(1, frame:GetHeight() * markerHeights[i])
+        marker:SetColorTexture(1, 1, 1, 0.3)
+        marker:SetPoint("TOP", frame, "TOPLEFT", GetMarkerPosition(timeValue), 0)
+        table.insert(frame.markers, marker)
+        
+        -- Add label if it exists
+        if markerLabels[i] ~= "" then
+            local text = frame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+            text:SetText(markerLabels[i])
+            text:SetPoint("BOTTOM", marker, "TOP", 0, 1)
+            text:SetTextColor(1, 1, 1, 0.3)
+            table.insert(frame.texts, text)
+        end
+    end
     
     LCT:Debug("Created", #frame.markers, "timeline markers")
 end

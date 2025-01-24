@@ -28,7 +28,8 @@ LCT.defaults = {
     
     -- Timeline
     maxTime = 300, -- 5 minutes
-    updateFrequency = 0.1
+    updateFrequency = 0.1,
+    reverseTimeline = false, -- false = left to right, true = right to left
 }
 
 -- Initialize current settings from defaults

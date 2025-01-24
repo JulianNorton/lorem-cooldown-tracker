@@ -8,10 +8,20 @@ local function SaveDimensionSettings()
     if not LoremCTDB then LoremCTDB = {} end
     if not LoremCTDB.dimensions then LoremCTDB.dimensions = {} end
     
-    LoremCTDB.dimensions.barWidth = LCT.frame:GetWidth()
-    LoremCTDB.dimensions.barHeight = LCT.frame:GetHeight()
-    LoremCTDB.dimensions.iconSize = LCT.iconSize
-    LoremCTDB.dimensions.locked = LCT.frame.locked
+    -- Save current settings
+    local settings = LoremCTDB.dimensions
+    settings.barWidth = LCT.frame:GetWidth()
+    settings.barHeight = LCT.frame:GetHeight()
+    settings.iconSize = LCT.iconSize
+    settings.locked = LCT.frame.locked
+    settings.reverseTimeline = LCT.reverseTimeline
+    
+    -- Debug output
+    LCT:Debug("Saved dimensions - Width:", settings.barWidth, 
+              "Height:", settings.barHeight, 
+              "IconSize:", settings.iconSize, 
+              "Locked:", settings.locked,
+              "Reverse:", settings.reverseTimeline)
 end
 
 -- Function to load dimension settings
@@ -21,17 +31,19 @@ local function LoadDimensionSettings()
     
     local settings = LoremCTDB.dimensions
     
-    -- Apply settings with fallback to defaults
-    local width = settings.barWidth or LCT.defaults.barWidth
-    local height = settings.barHeight or LCT.defaults.barHeight
-    local iconSize = settings.iconSize or LCT.defaults.iconSize
+    -- Apply settings with validation
+    local width = math.max(100, math.min(1000, settings.barWidth or LCT.defaults.barWidth))
+    local height = math.max(10, math.min(100, settings.barHeight or LCT.defaults.barHeight))
+    local iconSize = math.max(8, math.min(64, settings.iconSize or LCT.defaults.iconSize))
     local locked = settings.locked or LCT.defaults.locked
+    local reverse = settings.reverseTimeline or LCT.defaults.reverseTimeline
     
     -- Apply the settings
     LCT.frame:SetWidth(width)
     LCT.frame:SetHeight(height)
     LCT.iconSize = iconSize
     LCT.frame.locked = locked
+    LCT.reverseTimeline = reverse
     LCT.frame:EnableMouse(not locked)
     
     -- Update existing cooldown icons size
@@ -41,10 +53,20 @@ local function LoadDimensionSettings()
         end
     end
     
-    -- Update UI controls when settings frame exists
-    if LCT.settings.UpdateDimensionControls then
-        LCT.settings.UpdateDimensionControls()
+    -- Update timeline markers
+    if LCT.timeline and LCT.timeline.UpdateMarkers then
+        LCT.timeline.UpdateMarkers()
     end
+    
+    -- Update UI controls
+    LCT.settings.UpdateDimensionControls()
+    
+    -- Debug output
+    LCT:Debug("Loaded dimensions - Width:", width, 
+              "Height:", height, 
+              "IconSize:", iconSize, 
+              "Locked:", locked,
+              "Reverse:", reverse)
 end
 
 -- Helper function to create input box (made accessible to visibility module)
@@ -59,7 +81,7 @@ end
 
 -- Create settings frame
 local settingsFrame = CreateFrame("Frame", "LoremCTSettings", UIParent, "BasicFrameTemplateWithInset")
-settingsFrame:SetSize(300, 400)
+settingsFrame:SetSize(400, 500)  -- Increased size for better spacing
 settingsFrame:SetPoint("CENTER")
 settingsFrame:SetMovable(true)
 settingsFrame:EnableMouse(true)
@@ -71,12 +93,45 @@ settingsFrame:Hide()
 -- Set title
 settingsFrame.TitleText:SetText("Lorem Cooldown Tracker")
 
+-- Create section headers
+local function CreateHeader(text, parent, anchorFrame, yOffset)
+    local header = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    header:SetText(text)
+    if anchorFrame then
+        header:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", 0, yOffset)
+    else
+        header:SetPoint("TOPLEFT", 20, -40)
+    end
+    return header
+end
+
+-- Dimension Settings Header
+local dimensionHeader = CreateHeader("Timeline Dimensions", settingsFrame)
+
 -- Create dimension controls
 local dimensionControls = {}
 
+-- Timeline Direction Toggle
+dimensionControls.reverseButton = CreateFrame("CheckButton", nil, settingsFrame, "UICheckButtonTemplate")
+dimensionControls.reverseButton:SetPoint("TOPLEFT", dimensionHeader, "BOTTOMLEFT", 0, -10)
+dimensionControls.reverseButton:SetScript("OnClick", function(self)
+    LCT.reverseTimeline = self:GetChecked()
+    SaveDimensionSettings()
+    -- Update timeline and cooldowns
+    if LCT.timeline and LCT.timeline.UpdateMarkers then
+        LCT.timeline.UpdateMarkers()
+    end
+    if LCT.cooldowns and LCT.cooldowns.UpdateAll then
+        LCT.cooldowns.UpdateAll()
+    end
+end)
+dimensionControls.reverseButton.text = dimensionControls.reverseButton:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+dimensionControls.reverseButton.text:SetPoint("LEFT", dimensionControls.reverseButton, "RIGHT", 0, 1)
+dimensionControls.reverseButton.text:SetText("Reverse Timeline Direction")
+
 -- Lock Frame Toggle
 dimensionControls.lockButton = CreateFrame("CheckButton", nil, settingsFrame, "UICheckButtonTemplate")
-dimensionControls.lockButton:SetPoint("TOPLEFT", 20, -40)
+dimensionControls.lockButton:SetPoint("TOPLEFT", dimensionControls.reverseButton, "BOTTOMLEFT", 0, -10)
 dimensionControls.lockButton:SetScript("OnClick", function(self)
     LCT.frame.locked = self:GetChecked()
     LCT.frame:EnableMouse(not LCT.frame.locked)
@@ -194,16 +249,31 @@ dimensionControls.iconSizeInput:SetScript("OnEnterPressed", function(self)
     self:ClearFocus()
 end)
 
--- Create visibility controls
+-- Create visibility controls with proper spacing
+local visibilityHeader = CreateHeader("Visibility Options", settingsFrame, dimensionControls.iconSizeSlider, -30)
 local visibilityControls = LCT.visibility.CreateControls(settingsFrame)
-visibilityControls.header:SetPoint("TOPLEFT", dimensionControls.iconSizeSlider, "BOTTOMLEFT", 0, -30)
-visibilityControls.showFrameButton:SetPoint("TOPLEFT", visibilityControls.header, "BOTTOMLEFT", 0, -10)
+visibilityControls.showFrameButton:SetPoint("TOPLEFT", visibilityHeader, "BOTTOMLEFT", 0, -10)
 visibilityControls.bgOpacitySlider:SetPoint("TOPLEFT", visibilityControls.showFrameButton, "BOTTOMLEFT", 0, -30)
 visibilityControls.showTimeTextButton:SetPoint("TOPLEFT", visibilityControls.bgOpacitySlider, "BOTTOMLEFT", 0, -20)
 visibilityControls.showIconsButton:SetPoint("TOPLEFT", visibilityControls.showTimeTextButton, "BOTTOMLEFT", 0, -10)
 
+-- Add background for better readability
+settingsFrame.bg = settingsFrame:CreateTexture(nil, "BACKGROUND")
+settingsFrame.bg:SetAllPoints()
+settingsFrame.bg:SetColorTexture(0, 0, 0, 0.8)
+
+-- Add scroll frame for future options
+local scrollFrame = CreateFrame("ScrollFrame", nil, settingsFrame, "UIPanelScrollFrameTemplate")
+scrollFrame:SetPoint("TOPLEFT", settingsFrame, "TOPLEFT", 4, -24)
+scrollFrame:SetPoint("BOTTOMRIGHT", settingsFrame, "BOTTOMRIGHT", -28, 8)
+
+local scrollChild = CreateFrame("Frame")
+scrollFrame:SetScrollChild(scrollChild)
+scrollChild:SetSize(settingsFrame:GetWidth() - 28, settingsFrame:GetHeight() * 1.5)  -- Extra height for future options
+
 -- Function to update dimension controls
 function LCT.settings.UpdateDimensionControls()
+    dimensionControls.reverseButton:SetChecked(LCT.reverseTimeline)
     dimensionControls.lockButton:SetChecked(LCT.frame.locked)
     dimensionControls.barWidthSlider:SetValue(LCT.frame:GetWidth())
     dimensionControls.barWidthInput:SetText(math.floor(LCT.frame:GetWidth()))
@@ -225,7 +295,7 @@ end
 -- Create minimap icon
 local minimapIcon = LibStub("LibDataBroker-1.1"):NewDataObject("LoremCT", {
     type = "launcher",
-    icon = "Interface\\Icons\\Spell_Nature_TimeStop",
+    icon = "Interface\\Icons\\Achievement_BG_winAB_underXminutes",
     OnClick = function(self, button)
         if button == "LeftButton" then
             if settingsFrame:IsShown() then
