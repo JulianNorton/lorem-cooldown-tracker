@@ -38,14 +38,29 @@ for key, value in pairs(LCT.defaults) do
 end
 
 -- Main frame
-local frame = CreateFrame("Frame", "LoremCTFrame", UIParent)
+local frame = CreateFrame("Frame", "LoremCTFrame", UIParent, "BackdropTemplate")
 LCT.frame = frame  -- Make frame accessible to other modules
 
--- Set frame properties
+-- Set frame properties with method chaining
 frame:SetSize(LCT.defaults.barWidth, LCT.defaults.barHeight)
-frame:SetPoint("CENTER")
-frame:SetMovable(true)
-frame:EnableMouse(true)
+    :SetPoint("CENTER")
+    :SetMovable(true)
+    :EnableMouse(true)
+    :SetClampedToScreen(true)
+    :SetFrameStrata("MEDIUM")
+    :SetFrameLevel(1)
+
+-- Set backdrop
+frame:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true,
+    tileSize = 16,
+    edgeSize = 16,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 }
+})
+    :SetBackdropColor(0, 0, 0, LCT.defaults.bgOpacity)
+    :SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
 
 -- Add frame locking property
 frame.locked = LCT.defaults.locked
@@ -56,14 +71,14 @@ frame:SetScript("OnMouseDown", function(self, button)
         self:StartMoving()
     end
 end)
-frame:SetScript("OnMouseUp", function(self)
-    self:StopMovingOrSizing()
-end)
+    :SetScript("OnMouseUp", function(self)
+        self:StopMovingOrSizing()
+    end)
 
 -- Create timeline background
 frame.bg = frame:CreateTexture(nil, "BACKGROUND")
 frame.bg:SetAllPoints()
-frame.bg:SetColorTexture(0, 0, 0, LCT.defaults.bgOpacity)
+    :SetColorTexture(0, 0, 0, LCT.defaults.bgOpacity)
 
 LCT:Debug("Frame created with dimensions", frame:GetWidth(), frame:GetHeight())
 
@@ -82,60 +97,60 @@ LCT.animations.CancelAnimation = LCT.animations.CancelAnimation or function() en
 
 -- Register events for addon initialization
 frame:RegisterEvent("PLAYER_LOGIN")
-frame:RegisterEvent("ADDON_LOADED")
-frame:SetScript("OnEvent", function(self, event, arg1)
-    if event == "ADDON_LOADED" and arg1 == addonName then
-        LCT:Debug("ADDON_LOADED - Initializing modules")
-        
-        -- Initialize modules in correct order
-        if LCT.visibility then
-            LCT:Debug("Initializing visibility module")
-            LCT.visibility.Initialize()
-        else
-            LCT:Debug("ERROR - Visibility module not found")
-        end
-        
-        if LCT.cooldowns then
-            LCT:Debug("Initializing cooldowns module")
-            LCT.cooldowns.Initialize()
-        else
-            LCT:Debug("ERROR - Cooldowns module not found")
-        end
-        
-        if LCT.spells then
-            LCT:Debug("Initializing spells module")
-            LCT.spells.Initialize()
-        else
-            LCT:Debug("ERROR - Spells module not found")
-        end
-        
-        if LCT.timeline then
-            LCT:Debug("Initializing timeline module")
-            LCT.timeline.Initialize()
-        else
-            LCT:Debug("ERROR - Timeline module not found")
-        end
-        
-        LCT:Debug("Frame shown status after module initialization:", frame:IsShown())
-        
-        -- Force an initial spell scan
-        C_Timer.After(3, function()
-            if LCT.spells and LCT.spells.ScanSpellBook then
-                LCT:Debug("Performing delayed initial spell scan")
-                LCT.spells.ScanSpellBook()
+    :RegisterEvent("ADDON_LOADED")
+    :SetScript("OnEvent", function(self, event, arg1)
+        if event == "ADDON_LOADED" and arg1 == addonName then
+            LCT:Debug("ADDON_LOADED - Initializing modules")
+            
+            -- Initialize modules in correct order
+            if LCT.visibility then
+                LCT:Debug("Initializing visibility module")
+                LCT.visibility.Initialize()
             else
-                LCT:Debug("ERROR - Could not perform initial spell scan, module not ready")
+                LCT:Debug("ERROR - Visibility module not found")
             end
-        end)
-    elseif event == "PLAYER_LOGIN" then
-        LCT:Debug("PLAYER_LOGIN - Checking frame visibility")
-        LCT:Debug("Frame shown status:", frame:IsShown())
-        if not frame:IsShown() and LCT.visibility and LCT.visibility.shown then
-            LCT:Debug("Frame should be shown but isn't, showing now")
-            frame:Show()
+            
+            if LCT.cooldowns then
+                LCT:Debug("Initializing cooldowns module")
+                LCT.cooldowns.Initialize()
+            else
+                LCT:Debug("ERROR - Cooldowns module not found")
+            end
+            
+            if LCT.spells then
+                LCT:Debug("Initializing spells module")
+                LCT.spells.Initialize()
+            else
+                LCT:Debug("ERROR - Spells module not found")
+            end
+            
+            if LCT.timeline then
+                LCT:Debug("Initializing timeline module")
+                LCT.timeline.Initialize()
+            else
+                LCT:Debug("ERROR - Timeline module not found")
+            end
+            
+            LCT:Debug("Frame shown status after module initialization:", frame:IsShown())
+            
+            -- Force an initial spell scan
+            C_Timer.After(3, function()
+                if LCT.spells and LCT.spells.ScanSpellBook then
+                    LCT:Debug("Performing delayed initial spell scan")
+                    LCT.spells.ScanSpellBook()
+                else
+                    LCT:Debug("ERROR - Could not perform initial spell scan, module not ready")
+                end
+            end)
+        elseif event == "PLAYER_LOGIN" then
+            LCT:Debug("PLAYER_LOGIN - Checking frame visibility")
+            LCT:Debug("Frame shown status:", frame:IsShown())
+            if not frame:IsShown() and LCT.visibility and LCT.visibility.shown then
+                LCT:Debug("Frame should be shown but isn't, showing now")
+                frame:Show()
+            end
         end
-    end
-end)
+    end)
 
 -- Basic slash command registration
 SLASH_LCT1 = "/lct"

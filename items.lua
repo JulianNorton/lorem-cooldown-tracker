@@ -12,27 +12,9 @@ local PVP_TRINKETS = {
     [18864] = true  -- Insignia of the Horde
 }
 
--- Function to clean up unequipped trinkets
-local function CleanupTrinkets()
-    for itemID in pairs(LCT.cooldowns.trackedItems) do
-        -- Skip hardcoded items (like PvP trinkets)
-        if not PVP_TRINKETS[itemID] then
-            -- Check if item is still equipped
-            local isEquipped = false
-            for _, slot in ipairs(TRINKET_SLOTS) do
-                local equippedID = GetInventoryItemID("player", slot)
-                if itemID == equippedID then
-                    isEquipped = true
-                    break
-                end
-            end
-            
-            -- Unregister if not equipped
-            if not isEquipped then
-                LCT.cooldowns.UnregisterItem(itemID)
-            end
-        end
-    end
+-- Function to check if an item is a PvP trinket
+local function IsPvPTrinket(itemID)
+    return PVP_TRINKETS[itemID] or false
 end
 
 -- Function to check trinket slots and register them for tracking
@@ -40,35 +22,33 @@ local function UpdateEquippedTrinkets()
     -- Check trinket slots
     for _, slot in ipairs(TRINKET_SLOTS) do
         local itemID = GetInventoryItemID("player", slot)
-        if itemID then
-            LCT.cooldowns.RegisterItem(itemID)
+        if itemID and (IsPvPTrinket(itemID) or not IsPvPTrinket(itemID)) then
+            LCT.cooldowns.RegisterItem(slot)
         end
     end
-    
-    -- Clean up any unequipped trinkets
-    CleanupTrinkets()
 end
 
 -- Initialize item tracking
 function items.Initialize()
-    -- Register PvP trinkets
-    for itemID in pairs(PVP_TRINKETS) do
-        LCT.cooldowns.RegisterItem(itemID)
-    end
-    
-    -- Register equipment change events
-    LCT.frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
-    LCT.frame:RegisterEvent("UNIT_INVENTORY_CHANGED")
-    
-    -- Set up event handler
-    LCT.frame:HookScript("OnEvent", function(self, event, ...)
-        if event == "PLAYER_EQUIPMENT_CHANGED" or event == "UNIT_INVENTORY_CHANGED" then
-            local unit = ...
-            if not unit or unit == "player" then
-                UpdateEquippedTrinkets()
-            end
-        elseif event == "PLAYER_LOGIN" then
+    -- Create initialization frame with unique name to avoid conflicts
+    local initFrame = CreateFrame("Frame", nil, UIParent)
+    initFrame:RegisterEvent("PLAYER_LOGIN")
+    initFrame:SetScript("OnEvent", function(self, event)
+        if event == "PLAYER_LOGIN" then
+            -- Register equipment change events
+            local eventFrame = CreateFrame("Frame", nil, UIParent)
+            eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+            eventFrame:SetScript("OnEvent", function(_, event, slot)
+                if slot == 13 or slot == 14 then
+                    UpdateEquippedTrinkets()
+                end
+            end)
+            
+            -- Initial trinket check
             UpdateEquippedTrinkets()
+            
+            -- Cleanup
+            self:UnregisterEvent("PLAYER_LOGIN")
         end
     end)
 end
