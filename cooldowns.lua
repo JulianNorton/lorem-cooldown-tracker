@@ -53,7 +53,7 @@ end
 
 -- Function to update a cooldown
 function cooldowns.UpdateCooldown(id, isItem)
-    if not trackedSpells[id] and not trackedItems[id] then return end
+    if not id then return end
     
     local start, duration, enabled
     if isItem then
@@ -94,42 +94,27 @@ function cooldowns.UpdateCooldown(id, isItem)
         -- Clamp remaining time to maxTime (default 300s = 5min)
         remaining = math.min(remaining, LCT.maxTime)
         
-        --[[ POSITIONING ASSUMPTIONS:
-            Timeline reads left-to-right like a ruler:
-            
-            [0s -------- 150s -------- 300s]
-            Left                       Right
-            
-            - Left edge: x = iconSize/2 (icon centered at 0s mark)
-            - Right edge: x = width - iconSize/2 (icon centered at maxTime mark)
-            - Total travel distance = width - iconSize
-            - Icons move from right to left as time decreases
-            - New cooldowns start on right (full duration)
-            - Completed cooldowns end on left (0 duration)
-            
-            Position calculation:
-            - remaining/maxTime gives us a percentage (1.0 to 0.0)
-            - Multiply by available width (width - iconSize) to get travel distance
-            - Add iconSize/2 to adjust for icon centering
-            - This ensures icon centers move from (width - iconSize/2) to (iconSize/2)
-        --]]
-        
         -- Calculate the actual position
         local xPos = (remaining / LCT.maxTime) * (width - iconSize) + (iconSize/2)
         
-        -- Show and position icon
+        -- Only update if position changed significantly or icon is not visible
         if not icon:IsVisible() then
             icon:ClearAllPoints()
             icon:SetPoint("CENTER", LCT.frame, "LEFT", xPos, 0)
             icon:Show()
         else
-            -- Always update position directly, no animation needed
-            icon:ClearAllPoints()
-            icon:SetPoint("CENTER", LCT.frame, "LEFT", xPos, 0)
+            local _, _, _, oldX = icon:GetPoint()
+            if not oldX or math.abs(oldX - xPos) > 0.5 then
+                icon:ClearAllPoints()
+                icon:SetPoint("CENTER", LCT.frame, "LEFT", xPos, 0)
+            end
         end
         
-        -- Update time text
-        icon.timeText:SetText(FormatTimeText(remaining))
+        -- Update time text only if it changed
+        local timeText = FormatTimeText(remaining)
+        if icon.timeText:GetText() ~= timeText then
+            icon.timeText:SetText(timeText)
+        end
     else
         LCT.animations.CancelAnimation(icon)
         icon:Hide()
@@ -138,6 +123,13 @@ end
 
 -- Function to update all cooldowns
 function cooldowns.UpdateAll()
+    -- Use a throttle to prevent too frequent updates
+    local now = GetTime()
+    if cooldowns.lastUpdate and (now - cooldowns.lastUpdate) < 0.1 then
+        return
+    end
+    cooldowns.lastUpdate = now
+    
     for spellID in pairs(trackedSpells) do
         cooldowns.UpdateCooldown(spellID, false)
     end
