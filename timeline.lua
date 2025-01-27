@@ -105,17 +105,36 @@ function timeline.Initialize()
     -- Throttle resize updates
     local resizeElapsed = 0
     local isResizing = false
-    local RESIZE_THROTTLE = 0.1  -- Only update every 100ms during resize
+    local BASE_RESIZE_THROTTLE = 0.1  -- Base: 100ms during resize
+    local lastWidth = 0
+    local lastHeight = 0
     
     -- Create resize update frame
     local resizeFrame = CreateFrame("Frame")
     resizeFrame:Hide()
     
-    -- Set up throttled resize handler
+    -- Set up throttled resize handler with FPS awareness
     resizeFrame:SetScript("OnUpdate", function(self, elapsed)
         resizeElapsed = resizeElapsed + elapsed
-        if resizeElapsed >= RESIZE_THROTTLE then
-            timeline.UpdateMarkers()
+        
+        -- Adjust throttle based on FPS
+        local fps = GetFramerate()
+        local targetThrottle = BASE_RESIZE_THROTTLE
+        if fps < 30 then
+            targetThrottle = BASE_RESIZE_THROTTLE * 1.5
+        end
+        
+        if resizeElapsed >= targetThrottle then
+            -- Only update if dimensions actually changed
+            local currentWidth = LCT.frame:GetWidth()
+            local currentHeight = LCT.frame:GetHeight()
+            
+            if currentWidth ~= lastWidth or currentHeight ~= lastHeight then
+                timeline.UpdateMarkers()
+                lastWidth = currentWidth
+                lastHeight = currentHeight
+            end
+            
             resizeElapsed = 0
             
             -- If we're not resizing anymore, hide the frame
@@ -131,8 +150,15 @@ function timeline.Initialize()
             isResizing = true
             resizeFrame:Show()
             
-            -- Force an immediate first update
-            timeline.UpdateMarkers()
+            -- Force an immediate first update if dimensions changed significantly
+            local currentWidth = LCT.frame:GetWidth()
+            local currentHeight = LCT.frame:GetHeight()
+            
+            if math.abs(currentWidth - lastWidth) > 5 or math.abs(currentHeight - lastHeight) > 5 then
+                timeline.UpdateMarkers()
+                lastWidth = currentWidth
+                lastHeight = currentHeight
+            end
         end
         
         -- Reset resize state after a delay
@@ -143,6 +169,8 @@ function timeline.Initialize()
     
     -- Create initial markers
     timeline.UpdateMarkers()
+    lastWidth = LCT.frame:GetWidth()
+    lastHeight = LCT.frame:GetHeight()
 end
 
 -- Return the module

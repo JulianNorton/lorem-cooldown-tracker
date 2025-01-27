@@ -203,20 +203,45 @@ function cooldowns.Initialize()
         end
     end
     
-    -- Set up OnUpdate script with fixed update frequency (10 updates per second)
+    -- Set up OnUpdate script with dynamic update frequency
     local updateElapsed = 0
-    local UPDATE_FREQUENCY = 0.1  -- 100ms = 10 updates per second
+    local BASE_UPDATE_FREQUENCY = 0.1  -- Base: 100ms = 10 updates per second
+    local MIN_UPDATE_FREQUENCY = 0.05  -- Minimum: 50ms
+    local lastActiveCooldowns = 0
     
     LCT.frame:SetScript("OnUpdate", function(self, elapsed)
         updateElapsed = updateElapsed + elapsed
         
+        -- Dynamically adjust update frequency based on FPS and active cooldowns
+        local fps = GetFramerate()
+        local activeCooldownCount = 0
+        for _ in pairs(activeCooldowns) do
+            activeCooldownCount = activeCooldownCount + 1
+        end
+        
+        -- Calculate optimal update frequency
+        local targetFrequency = BASE_UPDATE_FREQUENCY
+        if fps < 30 then
+            -- Lower FPS - reduce updates
+            targetFrequency = BASE_UPDATE_FREQUENCY * 1.5
+        elseif activeCooldownCount > lastActiveCooldowns or activeCooldownCount == 0 then
+            -- More cooldowns just activated or no cooldowns - temporary increase frequency
+            targetFrequency = MIN_UPDATE_FREQUENCY
+        elseif activeCooldownCount > 5 then
+            -- Many active cooldowns - slightly reduce frequency
+            targetFrequency = BASE_UPDATE_FREQUENCY * 1.2
+        end
+        
         -- Skip update if not enough time has passed
-        if updateElapsed < UPDATE_FREQUENCY then
+        if updateElapsed < targetFrequency then
             return
         end
         
         -- Update all cooldowns
         cooldowns.UpdateAll()
+        
+        -- Store state for next update
+        lastActiveCooldowns = activeCooldownCount
         
         -- Reset elapsed time
         updateElapsed = 0
