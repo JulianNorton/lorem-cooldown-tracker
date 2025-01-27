@@ -1,6 +1,6 @@
 -- Create addon namespace
 local addonName, LCT = ...
-LCT.version = "0.1.0-alpha"
+LCT.version = "1.1.0"
 
 -- Debug flag
 LCT.debug = false

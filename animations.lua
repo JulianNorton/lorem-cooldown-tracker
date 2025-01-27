@@ -37,17 +37,24 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
                 local progress = elapsed / duration
                 local currentX = anim.startX + ((anim.targetX - anim.startX) * progress)
                 
-                icon:ClearAllPoints()
-                icon:SetPoint("CENTER", LCT.frame, "LEFT", currentX, 0)
+                -- Only update position if it changed significantly
+                if not anim.lastX or math.abs(currentX - anim.lastX) > 0.1 then
+                    icon:ClearAllPoints()
+                    icon:SetPoint("CENTER", LCT.frame, "LEFT", currentX, 0)
+                    anim.lastX = currentX
+                end
+                
+                -- Handle scaling less frequently
+                if anim.remaining and anim.remaining <= FINAL_SECONDS_THRESHOLD then
+                    local newScale = 1 + (FINAL_SECONDS_SCALE - 1) * (1 - anim.remaining / FINAL_SECONDS_THRESHOLD)
+                    -- Only update scale if it changed significantly
+                    if not anim.lastScale or math.abs(newScale - anim.lastScale) > 0.05 then
+                        icon:SetScale(newScale)
+                        anim.lastScale = newScale
+                    end
+                end
+                
                 hasActiveAnimations = true
-            end
-            
-            -- Handle scaling
-            if anim.remaining and anim.remaining <= FINAL_SECONDS_THRESHOLD then
-                local scale = 1 + (FINAL_SECONDS_SCALE - 1) * (1 - anim.remaining / FINAL_SECONDS_THRESHOLD)
-                icon:SetScale(scale)
-            else
-                icon:SetScale(1)
             end
         else
             activeAnimations[icon] = nil
@@ -65,12 +72,16 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
             icon:SetAlpha(1)
             finishAnimations[icon] = nil
         else
-            -- Fade out
+            -- Fade out with less frequent updates
             local progress = elapsed / FINISH_ANIMATION_DURATION
-            local alpha = 1 - progress
+            local newAlpha = 1 - progress
             
-            icon:Show()
-            icon:SetAlpha(alpha)
+            -- Only update alpha if it changed significantly
+            if not anim.lastAlpha or math.abs(newAlpha - anim.lastAlpha) > 0.05 then
+                icon:SetAlpha(newAlpha)
+                anim.lastAlpha = newAlpha
+            end
+            
             hasActiveAnimations = true
         end
     end
@@ -81,16 +92,22 @@ LCT.animations.updateFrame:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 -- Function to start position animation
-function LCT.animations.StartPositionAnimation(icon, targetX, remaining)
-    if not icon then return end
+function LCT.animations.StartPositionAnimation(frame, targetX, remaining)
+    if not frame or not frame:IsObjectType("Frame") then return end
     
-    local _, _, _, _, currentX = icon:GetPoint()
-    currentX = currentX or 0
+    -- Ensure frame has a valid point
+    local point, relativeTo, relativePoint, x, y = frame:GetPoint()
+    if not point then
+        -- If no point exists, set a default one
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", LCT.frame, "LEFT", 0, 0)
+        x = 0
+    end
     
-    activeAnimations[icon] = {
+    activeAnimations[frame] = {
         startTime = GetTime(),
         duration = ANIMATION_DURATION,
-        startX = currentX,
+        startX = x or 0,
         targetX = targetX,
         remaining = remaining
     }
