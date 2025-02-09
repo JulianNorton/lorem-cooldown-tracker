@@ -2,9 +2,6 @@
 local addonName, LCT = ...
 LCT.version = "1.1.0"
 
--- Debug flag
-LCT.debug = true  -- Temporarily enabled for debugging
-
 -- Debug print function
 function LCT:Debug(...)
     if self.debug then
@@ -14,6 +11,9 @@ end
 
 -- Set default options
 LCT.defaults = {
+    -- Debug
+    debug = false,
+    
     -- Frame dimensions
     barWidth = 300,
     barHeight = 30,
