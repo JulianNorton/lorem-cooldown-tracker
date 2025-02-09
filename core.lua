@@ -3,7 +3,7 @@ local addonName, LCT = ...
 LCT.version = "1.1.0"
 
 -- Debug flag
-LCT.debug = false
+LCT.debug = true  -- Temporarily enabled for debugging
 
 -- Debug print function
 function LCT:Debug(...)
@@ -106,6 +106,13 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             LCT.spells.Initialize()
         else
             LCT:Debug("ERROR - Spells module not found")
+        end
+        
+        if LCT.items then
+            LCT:Debug("Initializing items module")
+            LCT.items.Initialize()
+        else
+            LCT:Debug("ERROR - Items module not found")
         end
         
         if LCT.timeline then

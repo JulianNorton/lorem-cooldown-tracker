@@ -23,6 +23,7 @@ animations.lua
 timeline.lua
 cooldowns.lua
 spells.lua
+items.lua
 visibility.lua
 settings.lua
 tests.lua 
